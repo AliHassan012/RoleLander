@@ -452,7 +452,16 @@ async def _run_controller(app, claimed: SearchRun, profile: Profile, preferences
                 hit=SearchHit.model_validate(payload["hit"])
                 payload.update({"document":document.model_dump(mode="json"),"inspection_state":"inspected"})
                 _update_candidate(db_path,source_id,payload)
-                opportunity=await build_opportunity(gemini,hit,document)
+                try:
+                    opportunity=await build_opportunity(gemini,hit,document)
+                except ProviderError as exc:
+                    if exc.code not in {"EVIDENCE_INVALID", "MODEL_SCHEMA_INVALID"}:
+                        raise
+                    payload["inspection_state"]="evidence_rejected"
+                    _update_candidate(db_path,source_id,payload)
+                    with connect(db_path) as conn:
+                        _event(conn,run_id,"warning","Skipped a listing whose extracted facts could not be verified against its source.",{"source_id":source_id,"code":exc.code})
+                    continue
                 if opportunity is None:
                     payload["inspection_state"]="not_individual_job"; _update_candidate(db_path,source_id,payload); continue
                 with connect(db_path) as conn:

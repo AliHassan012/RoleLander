@@ -43,8 +43,9 @@ def _route(app, path, method):
     raise AssertionError(path)
 
 
+@pytest.mark.parametrize("bad_source", [False, True])
 @pytest.mark.parametrize("preference_change", ["work_arrangement", "target_roles"])
-def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch, preference_change):
+def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch, preference_change, bad_source):
     settings = Settings(gemini_api_key="fake-free-key", gemini_model="fixture", tavily_api_key="fake-free-key",
         data_dir=tmp_path, port=8000, cookie_secure=False, app_origin="http://testserver", free_only=True,
         storage_persistent=False, google_client_id=None, google_client_secret=None,
@@ -73,6 +74,7 @@ def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch,
 
     fixture=dict(SAMPLE_OPPORTUNITY); fixture.pop("sample_label")
     counters={"controller":0,"role_refresh":0}
+    rejected_source_id = str(uuid.uuid4())
     class FakeGemini:
         def __init__(self,*args,**kwargs): self.reserve=kwargs.get("reserve_attempt")
         async def generate_structured(self,*,system_prompt,user_payload,output_model,max_attempts):
@@ -83,7 +85,7 @@ def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch,
                     return AgentAction(action="search",query="data analyst internships Pakistan",opportunity_ids=[],decision_proposal=None,public_summary="Searching current listings.")
                 if counters["controller"]==2:
                     ids=[item["id"] for item in user_payload["OBSERVATION"]["candidates"]]
-                    return AgentAction(action="inspect",query=None,opportunity_ids=[uuid.UUID(ids[0])],decision_proposal=None,public_summary="Inspecting a saved vacancy.")
+                    return AgentAction(action="inspect",query=None,opportunity_ids=[uuid.UUID(value) for value in (ids if bad_source else ids[:1])],decision_proposal=None,public_summary="Inspecting a saved vacancy.")
                 if counters["controller"]==3:
                     if preference_change == "target_roles":
                         proposal=DecisionProposal(kind="preference_tradeoff",question="Target registered nurse roles?",preference_field="role_queries",proposed_value=["registered nurse"],fact_question=None)
@@ -99,6 +101,8 @@ def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch,
                     ("employer","Northstar Learning Cooperative (SAMPLE)"),("opportunity_type","Internship"),("work_arrangement","Hybrid")]])
                 data["salary_details"]["evidence_refs"]=[{**x,"source_id":sid} for x in data["salary_details"]["evidence_refs"]]
                 data["requirements"]=[{**r,"evidence":{**r["evidence"],"source_id":sid}} for r in data["requirements"]]
+                if sid == rejected_source_id:
+                    data["field_evidence"][0]["evidence"]["quote"] = "This quote is fabricated and absent from the saved source"
                 return ExtractOpportunityOutput(page_type="individual_job",opportunity=OpportunityFields.model_validate(data))
             if output_model.__name__ == "RoleAlignmentOutput":
                 counters["role_refresh"] += 1
@@ -116,11 +120,13 @@ def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch,
         def __init__(self,*args,**kwargs): self.reserve_search=kwargs.get("reserve_search_attempt"); self.reserve_extract=kwargs.get("reserve_extract_attempt")
         async def search(self,query,max_results):
             assert self.reserve_search()
-            return SearchOutcome([SearchResult(str(uuid.UUID(fixture["source_id"])),fixture["title"],fixture["canonical_url"],SOURCE_TEXT,1)],"fixture-request",1)
+            results=[SearchResult(str(uuid.UUID(fixture["source_id"])),fixture["title"],fixture["canonical_url"],SOURCE_TEXT,1)]
+            if bad_source:
+                results.insert(0,SearchResult(rejected_source_id,"Unverifiable listing","https://example.invalid/bad-listing",SOURCE_TEXT,2))
+            return SearchOutcome(results,"fixture-request",1)
         async def extract_saved(self,result_ids,saved_results):
             assert self.reserve_extract()
-            item=saved_results[result_ids[0]]
-            return ExtractOutcome([ExtractedPage(item.id,item.url,SOURCE_TEXT)],[],"fixture-extract")
+            return ExtractOutcome([ExtractedPage(saved_results[sid].id,saved_results[sid].url,SOURCE_TEXT) for sid in result_ids],[],"fixture-extract")
 
     monkeypatch.setattr("app.runner.GeminiAdapter",FakeGemini)
     monkeypatch.setattr("app.runner.TavilyAdapter",FakeTavily)
@@ -131,6 +137,11 @@ def test_sample_profile_to_edited_draft_with_human_resume(tmp_path, monkeypatch,
     assert running["state"]=="awaiting_decision" and running["search_call_count"]==1 and running["extract_call_count"]==1, running.get("last_error")
     opportunities=_drain(_route(app,"/api/runs/{run_id}/opportunities","GET")(uuid.UUID(queued["id"]),request("GET")))
     assert len(opportunities["items"])==1 and opportunities["items"][0]["assessment"]["score"] is not None
+    if bad_source:
+        with connect(app.state.db_path) as conn:
+            rejected=json.loads(conn.execute("SELECT payload_json FROM sources WHERE id=?",(rejected_source_id,)).fetchone()["payload_json"])
+        assert rejected["inspection_state"] == "evidence_rejected"
+        assert running["source_progress"]["inspected_count"] == 2
     initial_bucket = opportunities["items"][0]["assessment"]["bucket"]
     assert "SAMPLE Data Analyst Intern" in opportunities["items"][0]["source_excerpt"]
 
