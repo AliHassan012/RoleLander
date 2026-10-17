@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ef">
+  <title>RoleLander — opportunity research</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header><p class="eyebrow">ROLELANDER · OPPORTUNITY RESEARCH</p><h1>Find work that fits your situation.</h1><p class="intro">Build a candidate profile and set the places, roles, and conditions you want to search.</p></header>
+    <section id="signed-out" class="panel" hidden><h2>Sign in to begin</h2><p>Use Google sign-in to keep your profile private to your account.</p><p class="notice">Your profile stays in review until you confirm it. CV extraction is available only after provider data handling is configured.</p><a class="button" href="/auth/google/start">Continue with Google</a></section>
+    <section id="workspace" hidden>
+      <p id="account" class="fine"></p>
+      <section class="panel"><h2>1. Candidate profile</h2><p>Enter profile details yourself or paste CV text for source-quoted extraction when enabled.</p>
+        <button type="button" class="secondary" id="sample-profile">Load fictional sample profile</button><p class="fine">The sample is synthetic and stays unconfirmed until you review and confirm it.</p>
+        <form id="profile-form"><label>Display name <input name="display_name" maxlength="160"></label><label>Years of professional experience <input name="professional_years" type="number" min="0" step="0.5"></label>
+          <div id="facts"><div class="fact"><label>Fact type <select class="kind"><option value="skill">Skill</option><option value="employment">Employment</option><option value="project">Project</option><option value="education">Education</option><option value="achievement">Achievement</option><option value="language">Language</option><option value="availability">Availability</option><option value="other">Other</option></select></label><label>Label <input class="label" required maxlength="160" placeholder="Python"></label><label>Details <input class="value" required maxlength="2000" placeholder="Used for data analysis projects"></label><label>Skill level <select class="level"><option value="unknown">Unknown</option><option value="basic">Basic</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div></div>
+          <div class="actions"><button type="button" class="secondary" id="add-fact">Add a fact</button><button class="button">Save profile for review</button></div>
+        </form>
+        <form id="text-form" class="subform"><label>Or paste CV text <textarea name="text" rows="5" maxlength="24000" placeholder="Paste up to 24,000 characters. Source quotes will be shown for review."></textarea></label><button class="secondary">Extract profile facts</button></form>
+        <form id="pdf-form" class="subform"><label>Or upload a text PDF (up to 2 MiB and 10 pages) <input type="file" name="file" accept="application/pdf,.pdf" required></label><button class="secondary">Extract from PDF</button></form>
+        <div id="profile-result" aria-live="polite"></div>
+      </section>
+      <section class="panel"><h2>2. Search preferences</h2><p>Every search setting is explicit. City coordinates are optional; a named city without coordinates will not claim precise distance.</p>
+        <form id="preferences-form">
+          <div class="grid"><label>Country <select name="country_code" id="country" required></select></label><label>Country meaning <select name="country_scope" required><option value="" selected disabled>Choose one</option><option value="jobs_in_country">Jobs located in this country</option><option value="open_to_country">I am open to this country</option></select></label></div>
+          <label>Role searches (up to 3, one per line) <textarea name="role_queries" required rows="2" placeholder="Data Analyst"></textarea></label>
+          <div class="grid"><label>Opportunity types <select name="opportunity_types" multiple required><option value="job" selected>Job</option><option value="internship">Internship</option></select><small>Use Ctrl or Command to select both.</small></label><label>Seniority <select name="seniority"><option value="any">Any</option><option value="intern">Intern</option><option value="entry">Entry</option><option value="mid">Mid</option><option value="senior">Senior</option><option value="lead">Lead</option><option value="executive">Executive</option></select></label></div>
+          <label>Work arrangements <select name="work_arrangements" multiple required><option value="onsite">On-site</option><option value="hybrid">Hybrid</option><option value="remote" selected>Remote</option></select><small>Use Ctrl or Command to select multiple.</small></label>
+          <label>Location mode <select name="location_mode" id="location-mode"><option value="anywhere">Anywhere in the selected country</option><option value="cities">Selected cities</option><option value="nearby">Within a radius of a city</option></select></label>
+          <div id="city-fields" class="grid" hidden><label>Preferred cities, one per line <textarea name="preferred_cities" rows="2" placeholder="Lahore"></textarea></label><label>Excluded cities, one per line <textarea name="excluded_cities" rows="2"></textarea></label><label>Preferred city rule <select name="preferred_cities_policy"><option value="preferred">Prefer these cities</option><option value="required">Require these cities</option></select></label></div>
+          <div id="nearby-fields" class="grid" hidden><label>Reference city <input name="reference_city" placeholder="Lahore"></label><label>Radius in km <input name="radius_km" type="number" min="1" max="500" value="25"></label><label>Latitude (optional) <input name="reference_latitude" type="number" min="-90" max="90" step="any"></label><label>Longitude (optional) <input name="reference_longitude" type="number" min="-180" max="180" step="any"></label><label>Radius rule <select name="radius_policy"><option value="preferred">Preferred</option><option value="required">Required</option></select></label><small>The coordinates stay in your private preferences and are not sent in search queries. City-only references cannot establish precise distance.</small></div>
+          <div class="grid"><label>Paid policy <select name="paid_policy"><option value="any">Any pay status</option><option value="paid_only">Paid only</option></select></label><label>Right to work <select name="right_to_work"><option value="unknown">Not sure</option><option value="yes">Yes</option><option value="no">No</option></select></label><label>Need sponsorship <select name="needs_sponsorship"><option value="unknown">Not sure</option><option value="yes">Yes</option><option value="no">No</option></select></label></div>
+          <label>Availability note <input name="availability_note" maxlength="500" placeholder="Available from June"></label>
+          <h3>Job pay preferences</h3><div class="grid salary-type" id="salary-job"><label>Currency <input name="job_currency" value="PKR" minlength="3" maxlength="3"></label><label>Pay period <select name="job_period"><option value="month">Per month</option><option value="year">Per year</option></select></label><label>Minimum amount <input name="job_minimum_amount" type="number" min="0" step="any"></label><label>Preferred amount <input name="job_preferred_amount" type="number" min="0" step="any"></label><label>Minimum rule <select name="job_minimum_policy"><option value="preferred">Preferred</option><option value="required">Required</option></select></label><label><span>Include undisclosed pay</span><input name="job_include_undisclosed" type="checkbox" checked></label></div>
+          <h3>Internship pay preferences</h3><div class="grid salary-type" id="salary-internship"><label>Currency <input name="internship_currency" value="PKR" minlength="3" maxlength="3"></label><label>Pay period <select name="internship_period"><option value="month">Per month</option><option value="year">Per year</option></select></label><label>Minimum amount <input name="internship_minimum_amount" type="number" min="0" step="any"></label><label>Preferred amount <input name="internship_preferred_amount" type="number" min="0" step="any"></label><label>Minimum rule <select name="internship_minimum_policy"><option value="preferred">Preferred</option><option value="required">Required</option></select></label><label><span>Include undisclosed pay</span><input name="internship_include_undisclosed" type="checkbox" checked></label><label><span>Allow unpaid internships</span><input name="allow_unpaid" type="checkbox"></label></div>
+          <label>Company search <select name="company_search_mode"><option value="watchlist_only">Approved companies only</option><option value="watchlist_plus_discovery">Approved companies plus discovery</option></select></label>
+          <div class="actions"><button class="button">Save preferences</button></div>
+        </form><div id="preferences-result" aria-live="polite"></div>
+      </section>
+      <section class="panel"><h2>3. Company watchlist</h2><p>Add an employer using a saved public page that supports its identity. New companies stay suggested until you explicitly approve them.</p>
+        <form id="company-form"><div class="grid"><label>Company name <input name="name" maxlength="200" required></label><label>Official domain <input name="canonical_domain" maxlength="253" required placeholder="example.org"></label></div>
+          <label>Careers page URL <input name="careers_url" type="url" required placeholder="https://example.org/careers"></label>
+          <label>Saved source <select name="source_id" id="company-source" required></select></label>
+          <label>Exact evidence quote <textarea name="quote" rows="3" maxlength="600" required placeholder="Quote the saved page that connects this employer and its careers page."></textarea></label>
+          <button class="button">Add as suggested</button></form>
+        <div id="company-list" aria-live="polite"></div><div id="company-result" role="status" aria-live="polite"></div>
+      </section>
+      <section class="panel"><h2>4. Research run</h2><p>Choose a confirmed profile and the preference version to use. Your saved profile and settings will not change during this run.</p>
+        <form id="run-form"><div class="grid"><label>Confirmed profile <select id="run-profile" required></select></label><label>Search preferences <select id="run-preferences" required></select></label></div><button class="button">Start research</button></form>
+        <div id="run-history"></div><div id="run-result" aria-live="polite"></div>
+      </section>
+      <section class="panel"><h2>Application tracker</h2><div id="tracker-list"></div></section>
+      <section class="panel"><h2>Saved application drafts</h2><div id="draft-history"></div></section>
+      <p id="status" role="status" aria-live="polite"></p><button id="logout" class="secondary">Sign out</button>
+    </section>
+  </main>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

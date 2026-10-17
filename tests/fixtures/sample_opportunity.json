@@ -1,0 +1,85 @@
+{
+  "sample_label": "SAMPLE DATA",
+  "id": "00000000-0000-4000-8000-000000000101",
+  "user_id": "00000000-0000-4000-8000-000000000001",
+  "run_id": "00000000-0000-4000-8000-000000000102",
+  "source_id": "00000000-0000-4000-8000-000000000103",
+  "company_id": null,
+  "stable_source_key": "sample-employer:posting-001",
+  "discovery_sources": ["sample_fixture"],
+  "canonical_url": "https://jobs.example.invalid/sample-employer/analyst-intern-001",
+  "page_type": "individual_job",
+  "title": "SAMPLE Data Analyst Intern",
+  "employer": "Northstar Learning Cooperative (SAMPLE)",
+  "opportunity_type": "internship",
+  "seniority": "intern",
+  "work_arrangement": "hybrid",
+  "work_countries": ["PK"],
+  "work_cities": [
+    {
+      "id": "sample:islamabad",
+      "name": "Islamabad",
+      "country_code": "PK",
+      "admin_area": null,
+      "latitude": 33.6844,
+      "longitude": 73.0479,
+      "coordinate_precision": "city"
+    }
+  ],
+  "remote_scope": "not_remote",
+  "remote_countries": [],
+  "remote_regions": [],
+  "excluded_applicant_countries": [],
+  "requires_local_work_authorization": "unknown",
+  "sponsorship_available": "unknown",
+  "compensation": "paid",
+  "salary_text": "PKR 30,000–50,000 per month",
+  "salary_details": {
+    "min_amount": "30000",
+    "max_amount": "50000",
+    "currency": "PKR",
+    "period": "month",
+    "basis": "gross",
+    "component": "base",
+    "evidence_refs": [
+      {
+        "source_id": "00000000-0000-4000-8000-000000000103",
+        "quote": "PKR 30,000–50,000 per month"
+      }
+    ]
+  },
+  "normalized_compensation": null,
+  "minimum_years": null,
+  "posted_at": null,
+  "closes_at": null,
+  "availability": "unknown",
+  "requirements": [
+    {
+      "id": "00000000-0000-4000-8000-000000000104",
+      "text": "Basic Python familiarity",
+      "importance": "preferred",
+      "evidence": {
+        "source_id": "00000000-0000-4000-8000-000000000103",
+        "quote": "Basic Python familiarity preferred"
+      }
+    }
+  ],
+  "field_evidence": [
+    {
+      "field": "title",
+      "evidence": {
+        "source_id": "00000000-0000-4000-8000-000000000103",
+        "quote": "SAMPLE Data Analyst Intern"
+      }
+    },
+    {
+      "field": "workplace",
+      "evidence": {
+        "source_id": "00000000-0000-4000-8000-000000000103",
+        "quote": "Hybrid in Islamabad, Pakistan"
+      }
+    }
+  ],
+  "source_status": "retrieved"
+}
+
