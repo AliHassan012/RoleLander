@@ -338,7 +338,7 @@ async def process_run(app, run_id: str) -> None:
         try:
             profile, preferences, is_synthetic = _load_context(app.state.db_path, run)
             if app.state.settings.personal_data_mode != "verified_provider" and not (app.state.settings.personal_data_mode == "synthetic" and is_synthetic):
-                raise ProviderError("PERSONAL_DATA_MODE_UNVERIFIED", "Profile analysis is disabled until provider handling is verified; no profile facts were sent.")
+                raise ProviderError("PERSONAL_DATA_MODE_UNVERIFIED", "Your profile is confirmed, but this app is in synthetic-only mode and this profile is not a fictional sample. No profile facts were sent to Gemini. Review Google's data handling before explicitly enabling personal-profile processing, or use the unedited fictional sample.")
             await _run_controller(app, run, profile, preferences)
         except ProviderError as exc:
             latest = _read_run(app.state.db_path, run_id) or run
@@ -468,7 +468,7 @@ async def _run_controller(app, claimed: SearchRun, profile: Profile, preferences
                     synthetic_row=conn.execute("SELECT is_synthetic FROM profiles WHERE id=? AND version=? AND user_id=?",(str(run.profile_id),run.profile_version,str(run.user_id))).fetchone()
                 is_synthetic=bool(synthetic_row and synthetic_row["is_synthetic"])
                 if app.state.settings.personal_data_mode!="verified_provider" and not (app.state.settings.personal_data_mode=="synthetic" and is_synthetic):
-                    raise ProviderError("PERSONAL_DATA_MODE_UNVERIFIED","Assessment is disabled until provider handling is verified; no profile facts were sent.")
+                    raise ProviderError("PERSONAL_DATA_MODE_UNVERIFIED","Your profile is confirmed, but this app is in synthetic-only mode and this profile is not a fictional sample. No profile facts were sent to Gemini. Review Google's data handling before explicitly enabling personal-profile processing, or use the unedited fictional sample.")
                 assessment_output=await gemini.generate_structured(
                     system_prompt=("Compare source-backed JOB_REQUIREMENTS with CONFIRMED_PROFILE. Use only supplied IDs. "
                                    "Supported requires direct evidence; partial means only part is supported; not_evidenced does not mean the person lacks the skill. "

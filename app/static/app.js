@@ -206,9 +206,13 @@ $("#preferences-form").addEventListener("submit", async (event) => {
 });
 $("#logout").addEventListener("click", async () => { try { await api("/api/logout", { method: "POST", body: "{}" }); location.reload(); } catch (error) { message($("#status"), error.message, "error"); } });
 function renderOpportunities(items, host, run) {
-  const heading=document.createElement("h3"); heading.textContent=`${items.length} verified individual vacancies`; host.append(heading);
+  let heading=host.querySelector(":scope > [data-opportunity-heading]");
+  if(!heading){heading=document.createElement("h3");heading.dataset.opportunityHeading="true";host.append(heading);}
+  heading.textContent=`${items.length} verified individual vacancies`;
   for(const item of items) {
-    const opportunity=item.opportunity, assessment=item.assessment, card=document.createElement("article"); card.className="result-card";
+    const opportunity=item.opportunity;
+    if(host.querySelector(`[data-opportunity-id="${CSS.escape(String(opportunity.id))}"]`)) continue;
+    const assessment=item.assessment, card=document.createElement("article"); card.className="result-card";card.dataset.opportunityId=opportunity.id;
     const title=document.createElement("h3"); title.textContent=opportunity.title || "Untitled role"; card.append(title);
     const employer=document.createElement("p"); employer.textContent=`${opportunity.employer || "Employer unknown"} · ${opportunity.opportunity_type} · ${assessment?.bucket?.replaceAll("_"," ") || "not assessed"}${assessment?.score == null ? "" : ` · ${assessment.score}/100 sorting score`}`; card.append(employer);
     const details=document.createElement("p"); details.textContent=`Availability: ${opportunity.availability}. Source: ${opportunity.source_status}. ${assessment?.warnings?.join(" ") || ""}`; card.append(details);
@@ -276,27 +280,46 @@ async function showDecision(run, host) {
   box.append(form); host.append(box);
 }
 async function renderRun(run, host) {
-  const generation=++runRenderGeneration;
+  const sameRun=host.dataset.runId===run.id;
+  const sameState=sameRun&&host.dataset.runState===run.state;
   if(host===$("#run-result")) displayedRunId=run.id;
-  host.replaceChildren(); const summary=document.createElement("p"); summary.className=run.state==="failed"?"error":"success";
-  summary.textContent=`Run ${run.state.replaceAll("_"," ")} · ${run.source_count} saved sources · ${run.opportunity_count} assessed vacancies${run.last_error?` · ${run.last_error.message}`:""}`; host.append(summary);
-  if(run.state==="queued"||run.state==="running") {
-    const cancel=document.createElement("button"); cancel.className="secondary"; cancel.textContent="Cancel run";
-    cancel.addEventListener("click",async()=>{try{const stopped=await api(`/api/runs/${run.id}/cancel`,{method:"POST",body:JSON.stringify({expected_state_version:run.state_version})});await renderRun(stopped,host);await refreshRunHistory();}catch(error){message(host,error.message,"error");}});host.append(cancel);
-  } else if(run.state==="interrupted") {
-    const resume=document.createElement("button"); resume.className="button"; resume.textContent="Resume saved run";
-    resume.addEventListener("click",async()=>{try{const resumed=await api(`/api/runs/${run.id}/resume`,{method:"POST",body:JSON.stringify({expected_state_version:run.state_version})});await renderRun(resumed,host);await refreshRunHistory();}catch(error){message(host,error.message,"error");}});host.append(resume);
+  if(!sameState) {
+    runRenderGeneration++;
+    host.replaceChildren();host.dataset.runId=run.id;host.dataset.runState=run.state;
+    const summary=document.createElement("p");summary.dataset.runSummary="true";host.append(summary);
+    const actions=document.createElement("div");actions.dataset.runActions="true";host.append(actions);
+    const events=document.createElement("ul");events.dataset.runEvents="true";host.append(events);
+    const sources=document.createElement("details");sources.dataset.runSources="true";const sourceHeading=document.createElement("summary");sourceHeading.textContent="Source activity";sources.append(sourceHeading);host.append(sources);
+    const results=document.createElement("section");results.dataset.runResults="true";host.append(results);
   }
-  const events=await api(`/api/runs/${run.id}/events`), list=document.createElement("ul");
-  for(const item of events.items) { const li=document.createElement("li"); li.textContent=item.message; list.append(li); } host.append(list);
-  const sources=await api(`/api/runs/${run.id}/sources`);
-  if(sources.items.length){const panel=document.createElement("details"),summary=document.createElement("summary");summary.textContent=`Source activity · ${sources.items.length} saved`;panel.append(summary);
-    for(const source of sources.items){const row=document.createElement("p"),link=document.createElement("a");link.href=source.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||"Untitled source";row.append(link);const state=document.createElement("span");state.textContent=` · ${source.source_status} · ${source.inspection_state}${source.truncated?" · text truncated":""}`;row.append(state);panel.append(row);if(source.excerpt){const quote=document.createElement("blockquote");quote.textContent=source.excerpt;panel.append(quote);}}
-    host.append(panel);
+  const generation=runRenderGeneration;
+  host.dataset.runState=run.state;
+  const summary=host.querySelector("[data-run-summary]");summary.className=run.state==="failed"?"error":"success";
+  summary.textContent=`Run ${run.state.replaceAll("_"," ")} · ${run.source_count} saved sources · ${run.opportunity_count} assessed vacancies${run.last_error?` · ${run.last_error.message}`:""}`;
+  const actions=host.querySelector("[data-run-actions]");
+  if(!sameState) {
+    actions.replaceChildren();
+    if(run.state==="queued"||run.state==="running") {
+      const cancel=document.createElement("button");cancel.className="secondary";cancel.textContent="Cancel run";
+      cancel.addEventListener("click",async()=>{try{const stopped=await api(`/api/runs/${run.id}/cancel`,{method:"POST",body:JSON.stringify({expected_state_version:run.state_version})});await renderRun(stopped,host);await refreshRunHistory();}catch(error){message(host,error.message,"error");}});actions.append(cancel);
+    } else if(run.state==="interrupted") {
+      const resume=document.createElement("button");resume.className="button";resume.textContent="Resume saved run";
+      resume.addEventListener("click",async()=>{try{const resumed=await api(`/api/runs/${run.id}/resume`,{method:"POST",body:JSON.stringify({expected_state_version:run.state_version})});await renderRun(resumed,host);await refreshRunHistory();}catch(error){message(host,error.message,"error");}});actions.append(resume);
+    }
   }
-  if(run.state==="awaiting_decision") { await showDecision(run,host); return; }
-  if(run.opportunity_count) { const result=await api(`/api/runs/${run.id}/opportunities`); renderOpportunities(result.items,host,run); }
-  if(run.state==="queued"||run.state==="running") setTimeout(async()=>{if(generation!==runRenderGeneration)return;try{await renderRun(await api(`/api/runs/${run.id}`),host);}catch(error){message(host,error.message,"error");}},2000);
+  const events=await api(`/api/runs/${run.id}/events`),list=host.querySelector("[data-run-events]");
+  for(const item of events.items.slice(list.children.length)){const li=document.createElement("li");li.textContent=item.message;list.append(li);}
+  const sources=await api(`/api/runs/${run.id}/sources`),panel=host.querySelector("[data-run-sources]");
+  for(const source of sources.items) {
+    let row=panel.querySelector(`[data-source-id="${CSS.escape(String(source.id))}"]`);
+    if(!row){row=document.createElement("p");row.dataset.sourceId=source.id;const link=document.createElement("a");link.href=source.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title||"Untitled source";row.append(link);const state=document.createElement("span");state.dataset.sourceState="true";row.append(state);panel.append(row);}
+    row.querySelector("[data-source-state]").textContent=` · ${source.source_status} · ${source.inspection_state}${source.truncated?" · text truncated":""}`;
+    if(source.excerpt&&!row.querySelector("blockquote")){const quote=document.createElement("blockquote");quote.textContent=source.excerpt;row.append(quote);}
+  }
+  panel.querySelector("summary").textContent=`Source activity · ${sources.items.length} saved`;
+  if(run.state==="awaiting_decision") { if(host.dataset.decisionId!==run.pending_decision_id){host.dataset.decisionId=run.pending_decision_id;await showDecision(run,host);} return; }
+  if(run.opportunity_count) { const result=await api(`/api/runs/${run.id}/opportunities`); renderOpportunities(result.items,host.querySelector("[data-run-results]"),run); }
+  if(run.state==="queued"||run.state==="running") setTimeout(async()=>{if(generation!==runRenderGeneration||host.dataset.runId!==run.id)return;try{await renderRun(await api(`/api/runs/${run.id}`),host);}catch(error){message(host,error.message,"error");}},2000);
 }
 async function refreshRunHistory() {
   const host=$("#run-history"); host.replaceChildren();

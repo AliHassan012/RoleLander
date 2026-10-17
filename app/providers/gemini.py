@@ -58,8 +58,10 @@ class GeminiAdapter:
                     await asyncio.sleep(0.25)
                     continue
                 raise ProviderError("PROVIDER_UNAVAILABLE", "Gemini could not be reached.", retryable=True) from exc
-            if response.status_code in {401, 403}:
-                raise ProviderError("PROVIDER_AUTH_FAILED", "Gemini credentials were rejected.", status_code=response.status_code)
+            if response.status_code == 401:
+                raise ProviderError("PROVIDER_AUTH_FAILED", "Gemini rejected the API key for generation (HTTP 401). Check that GEMINI_API_KEY contains the current key.", status_code=response.status_code)
+            if response.status_code == 403:
+                raise ProviderError("PROVIDER_ACCESS_DENIED", "Gemini denied generation for this key, project, or model (HTTP 403). Check Gemini API access and the key's project and application restrictions.", status_code=response.status_code)
             if response.status_code in {429, 432, 433}:
                 raise ProviderError("PROVIDER_QUOTA", "Gemini request quota is unavailable.", retryable=True, status_code=response.status_code)
             if response.status_code >= 500:
