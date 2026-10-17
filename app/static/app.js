@@ -130,10 +130,18 @@ $("#add-fact").addEventListener("click", () => {
   $("#facts").append(clone);
 });
 $("#sample-profile").addEventListener("click", async () => {
-  const button=$("#sample-profile"); button.disabled=true;
-  try { const profile=await api("/api/profiles/sample",{method:"POST",body:"{}"}); editingProfile=profile; renderProfile(profile); }
-  catch(error) { message($("#profile-result"),error.message,"error"); }
-  finally { button.disabled=false; }
+  const button=$("#sample-profile"), host=$("#profile-result");
+  button.disabled=true; button.textContent="Loading sample profile…";
+  message(host,"Loading the fictional profile…");
+  try {
+    const profile=await api("/api/profiles/sample",{method:"POST",body:"{}"});
+    editingProfile=profile; renderProfile(profile);
+  } catch(error) { message(host,error.message,"error"); }
+  finally {
+    button.disabled=false; button.textContent="Load fictional sample profile";
+    host.focus({preventScroll:true});
+    host.scrollIntoView({behavior:"smooth",block:"center"});
+  }
 });
 $("#location-mode").addEventListener("change", (event) => {
   $("#city-fields").hidden = event.target.value === "anywhere";

@@ -15,13 +15,13 @@
       <p id="account" class="fine"></p>
       <section class="panel"><h2>1. Candidate profile</h2><p>Enter profile details yourself or paste CV text for source-quoted extraction when enabled.</p>
         <button type="button" class="secondary" id="sample-profile">Load fictional sample profile</button><p class="fine">The sample is synthetic and stays unconfirmed until you review and confirm it.</p>
+        <div id="profile-result" aria-live="polite" tabindex="-1"></div>
         <form id="profile-form"><label>Display name <input name="display_name" maxlength="160"></label><label>Years of professional experience <input name="professional_years" type="number" min="0" step="0.5"></label>
           <div id="facts"><div class="fact"><label>Fact type <select class="kind"><option value="skill">Skill</option><option value="employment">Employment</option><option value="project">Project</option><option value="education">Education</option><option value="achievement">Achievement</option><option value="language">Language</option><option value="availability">Availability</option><option value="other">Other</option></select></label><label>Label <input class="label" required maxlength="160" placeholder="Python"></label><label>Details <input class="value" required maxlength="2000" placeholder="Used for data analysis projects"></label><label>Skill level <select class="level"><option value="unknown">Unknown</option><option value="basic">Basic</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div></div>
           <div class="actions"><button type="button" class="secondary" id="add-fact">Add a fact</button><button class="button">Save profile for review</button></div>
         </form>
         <form id="text-form" class="subform"><label>Or paste CV text <textarea name="text" rows="5" maxlength="24000" placeholder="Paste up to 24,000 characters. Source quotes will be shown for review."></textarea></label><button class="secondary">Extract profile facts</button></form>
         <form id="pdf-form" class="subform"><label>Or upload a text PDF (up to 2 MiB and 10 pages) <input type="file" name="file" accept="application/pdf,.pdf" required></label><button class="secondary">Extract from PDF</button></form>
-        <div id="profile-result" aria-live="polite"></div>
       </section>
       <section class="panel"><h2>2. Search preferences</h2><p>Every search setting is explicit. City coordinates are optional; a named city without coordinates will not claim precise distance.</p>
         <form id="preferences-form">
